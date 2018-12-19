@@ -43,6 +43,8 @@
 		use ExtendsTrait;
 		const CONST_A='Val CONST_A';
 		// персональные свойства  (не переопределяются в примере)
+		public function __get($a){}
+		public function __construct(){}
 		static private $private_static_prop_ExtendsClass='val for '.__CLASS__.'::$private_static_prop_ExtendsClass';
 		static protected $protected_static_prop_ExtendsClass='val for '.__CLASS__.'::$protected_static_prop_ExtendsClass';
 		static public $public_static_prop_ExtendsClass='val for '.__CLASS__.'::$public_static_prop_ExtendsClass';

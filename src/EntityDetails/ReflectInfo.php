@@ -139,7 +139,9 @@ class ReflectInfo {
             } else
             if (is_array($value)) {
                 $answer[$prop] = &$this->getInfoArrayRecurs($value, trim($path . '.' . $prop, '.'));
-            } else {
+            } else if(is_resource($value)){
+				$answer->properties[$prop]='Resource type: '.get_resource_type($value);
+			} else {
                 $answer[$prop] = &$value;
             }
         }
@@ -202,7 +204,9 @@ class ReflectInfo {
             } else
             if (is_array($value)) {
                 $answer->properties[$prop] = &$this->getInfoArrayRecurs($value, trim($path . '.' . $prop, '.'));
-            } else {
+            } else if(is_resource($value)){
+				$answer->properties[$prop]='Resource type: '.get_resource_type($value);
+			}else{
                 $answer->properties[$prop] = &$value;
             }
         }
@@ -298,7 +302,11 @@ class ReflectInfo {
         $answer = [];
         $reincarnation_array = [];
         $recurs_call = function &(&$data, $path = '') use (&$is_loop,&$recurs_call, &$hashes, &$reincarnation_array) {
+
 			if(is_array($data) || is_object($data)){
+				if(is_callable($data) && is_object($data)){
+					$hash = spl_object_hash($data);
+				}else
 				if (is_array($data)) {
 					$data = new \ArrayObject($data, \ArrayObject::ARRAY_AS_PROPS);
 					$hash = spl_object_hash($data);
@@ -307,13 +315,18 @@ class ReflectInfo {
 					$hash = spl_object_hash($data);
 				} 
 				if (!isset($hashes[$hash])){
-					$object = (array) $data;
-					$answer=[];
-					$hashes[$hash] = ['path'=>$path,'object'=>&$answer];
-					foreach ($object as $prop => &$value) {
-                        $answer[$prop] = $recurs_call($value, trim($path . '.' . $prop, '.'));
+					if(is_callable($data)){
+						$answer='**(Object Closure)**';
+					} else {
+						$object = (array) $data;
+						$answer=[];
+						$hashes[$hash] = ['path'=>$path,'object'=>&$answer];
+						
+						foreach ($object as $prop => &$value) {
+							$answer[$prop] = $recurs_call($value, trim($path . '.' . $prop, '.'));
+						}
+						unset($hashes[$hash]);
 					}
-					unset($hashes[$hash]);
 				} else {
 					if($is_loop==true){
 						$answer = '**recursive loop** => ' . $hashes[$hash]['path'];
@@ -321,7 +334,9 @@ class ReflectInfo {
 						$answer =&$hashes[$hash]['object'];
 					}
 				}
-			} else {
+			} else if(is_resource($data)){
+				$answer='Resource type: '.get_resource_type($data);
+			}else {
 				$answer=&$data;
 			}
             return $answer;
@@ -431,93 +446,98 @@ class InfoClassType {
         }
 		unset($value);
         $this->methods = [];
+		$this->native_methods = [];
         foreach ($reflect->getMethods() as &$method) {
             //$reflect_method=new \ReflectionMethod($reflect->getName(),$method->name);
-			if($method->class==$reflect->getName()){
-				$this->nameConvert(false);
-				$name = $method->name;
-				if ($method->isConstructor()) {
-					$name = $this->nameConvert($method->name, 'construct');
+			$nc=$reflect->getName();
+			$this->nameConvert(false);
+			$name = $method->name;
+			if ($method->isConstructor()) {
+				$name = $this->nameConvert($method->name, 'construct');
+			}
+			if ($method->isStatic()) {
+				$name = $this->nameConvert($method->name, 'static');
+			}
+			if ($method->isAbstract()) {
+				$name = $this->nameConvert($method->name, 'abstract');
+			}
+			if ($method->isFinal()) {
+				$name = $this->nameConvert($method->name, 'final');
+			} else
+			if ($method->isPrivate()) {
+				$name = $this->nameConvert($method->name, 'private');
+			} else
+			if ($method->isProtected()) {
+				$name = $this->nameConvert($method->name, 'protected');
+			} else
+			if ($method->isPublic()) {
+				$name = $this->nameConvert($method->name, 'public');
+			}
+			$this->methods[$name] = ['params' => [], 'return' => ''];
+			foreach ($method->getParameters() as &$param) {
+				$this->methods[$name]['params'][$param->name] = [];
+				if ($param->hasType()) {
+					$this->methods[$name]['params'][$param->name]['type'] = $param->getType()->getName();
 				}
-				if ($method->isStatic()) {
-					$name = $this->nameConvert($method->name, 'static');
+				if ($param->isDefaultValueAvailable()) {
+					$this->methods[$name]['params'][$param->name]['value'] = $param->getDefaultValue();
 				}
-				if ($method->isAbstract()) {
-					$name = $this->nameConvert($method->name, 'abstract');
-				}
-				if ($method->isFinal()) {
-					$name = $this->nameConvert($method->name, 'final');
-				} else
-				if ($method->isPrivate()) {
-					$name = $this->nameConvert($method->name, 'private');
-				} else
-				if ($method->isProtected()) {
-					$name = $this->nameConvert($method->name, 'protected');
-				} else
-				if ($method->isPublic()) {
-					$name = $this->nameConvert($method->name, 'public');
-				}
-				$this->methods[$name] = ['params' => [], 'return' => ''];
-				foreach ($method->getParameters() as &$param) {
-					$this->methods[$name]['params'][$param->name] = [];
-					if ($param->hasType()) {
-						$this->methods[$name]['params'][$param->name]['type'] = $param->getType()->getName();
-					}
-					if ($param->isDefaultValueAvailable()) {
-						$this->methods[$name]['params'][$param->name]['value'] = $param->getDefaultValue();
-					}
-				}
-				unset($param);
-				if ($method->hasReturnType()) {
-					$this->methods[$name]['return'] = ['type' => $method->getReturnType()->getName()];
-				}
+			}
+			unset($param);
+			if ($method->hasReturnType()) {
+				$this->methods[$name]['return'] = ['type' => $method->getReturnType()->getName()];
+			}
+			if($method->class==$nc){
+				$this->native_methods[$name]=&$this->methods[$name];
 			}
         }
 		unset($method);
         $this->properties = [];
+		$this->native_properties = [];
 		$default=$reflect->getDefaultProperties();
         foreach ($reflect->getProperties() as &$reflect_property) {
             $nc = $reflect->getName();
-			if($reflect_property->class==$nc){
-				$property = $reflect_property->name;
-				$name = $property;
-				$reflect_property->setAccessible(true);
-				$this->nameConvert(false);
-				if ($reflect_property->isStatic()) {
-					$name = $this->nameConvert($property, 'static');
+			$property = $reflect_property->name;
+			$name = $property;
+			$reflect_property->setAccessible(true);
+			$this->nameConvert(false);
+			if ($reflect_property->isStatic()) {
+				$name = $this->nameConvert($property, 'static');
+			}
+			if ($reflect_property->isPrivate()) {
+				$name = $this->nameConvert($property, 'private');
+			} else
+			if ($reflect_property->isProtected()) {
+				$name = $this->nameConvert($property, 'protected');
+			} else {
+				if ($reflect_property->isPublic()) {
+					$name = $this->nameConvert($property, 'public');
 				}
-				if ($reflect_property->isPrivate()) {
-					$name = $this->nameConvert($property, 'private');
+			}
+			if ($reflect_property->isStatic()) {
+				$value=$reflect_property->getValue();
+				if (is_object($value)){
+					$name .= ':' . get_class($value);
 				} else
-				if ($reflect_property->isProtected()) {
-					$name = $this->nameConvert($property, 'protected');
-				} else {
-					if ($reflect_property->isPublic()) {
-						$name = $this->nameConvert($property, 'public');
-					}
+				if (is_array($value)) {
+					$name .= '☢';
 				}
-				if ($reflect_property->isStatic()) {
-					$value=$reflect_property->getValue();
-					if (is_object($value)){
-						$name .= ':' . get_class($value);
-					} else
-					if (is_array($value)) {
-						$name .= '☢';
-					}
-					if ($reflect_property->isPublic()) {
-						$this->properties[$name] = &$nc::$$property; 
-					} else {
-						$this->properties[$name] = $value;
-					}
+				if ($reflect_property->isPublic()) {
+					$this->properties[$name] = &$nc::$$property; 
 				} else {
-					 if (is_object($default[$property])){ 
-						$name .= ':' . get_class($default[$property]);
-					} else
-					if (is_array($default[$property])) {
-						$name .= '☢';
-					}
-					$this->properties[$name] =&$default[$property];
+					$this->properties[$name] = $value;
 				}
+			} else {
+				 if (is_object($default[$property])){ 
+					$name .= ':' . get_class($default[$property]);
+				} else
+				if (is_array($default[$property])) {
+					$name .= '☢';
+				}
+				$this->properties[$name] =&$default[$property];
+			}
+			if($reflect_property->class==$nc){
+				$this->native_properties[$name]=&$this->properties[$name];
 			}
         }
 		unset($reflect_property);
@@ -566,8 +586,8 @@ class InfoObjectType {
             $this->constants[$name] = ['value' => &$value];
         }
 		unset($value);
-        //$this->methods = &$this->class->methods;
-		foreach($reflect->getMethods() as $method){
+        $this->methods = &$this->class->methods;
+		/*foreach($reflect->getMethods() as $method){
 			$this->nameConvert(false);
 			$name = $method->name;
 			if ($method->isConstructor()) {
@@ -605,7 +625,7 @@ class InfoObjectType {
 			if ($method->hasReturnType()) {
 				$this->methods[$name]['return'] = ['type' => $method->getReturnType()->getName()];
 			}
-		}
+		}*/
         $this->properties = [];
         $array = (array) $object;
         $prop_added = [];
