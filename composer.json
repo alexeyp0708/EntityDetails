@@ -1,4 +1,12 @@
 {
-	"require":{},
-	
+    "name": "Alpa/EntityDetails",
+    "description": "Provides information about objects.",
+    "type": "library",
+    "license": "MIT",
+    "require": {},
+	"autoload": {
+		"psr-4": {
+			"Alpa\\EntityDetails\\":"src/EntityDetails"
+		}
+    }
 }

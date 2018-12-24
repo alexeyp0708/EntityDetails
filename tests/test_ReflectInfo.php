@@ -1,6 +1,8 @@
 <?php
 	// classes  to assign an arguments type for methods and  output data.
-	include_once __DIR__.'\ReflectInfo.php';
+	//include_once __DIR__.'\..\src\EntityDetails\ReflectInfo.php';
+	header('Content-Type: application/json');
+	include_once __DIR__.'/../vendor/autoload.php';
 	use Alpa\EntityDetails\ReflectInfo;
 	class InArg{
 		const A='Hello';
@@ -128,8 +130,8 @@ $ a = self :: $ prop; The data connection was terminated because a copy of the d
 $object=new TestClass();
 $object->setTestProp();
 $rf=new ReflectInfo(); 
-//$res=$rf->getInfoClassRecurs($object);
-$res=$rf->getInfoObjectArrayRecurs($object);
+$res=$rf->getInfoClassRecurs($object);
+//$res=$rf->getInfoObjectArrayRecurs($object);
 echo json_encode($res);
 	
 
