@@ -130,8 +130,8 @@ $ a = self :: $ prop; The data connection was terminated because a copy of the d
 $object=new TestClass();
 $object->setTestProp();
 $rf=new ReflectInfo(); 
-$res=$rf->getInfoClassRecurs($object);
-//$res=$rf->getInfoObjectArrayRecurs($object);
+//$res=$rf->getInfoClassRecurs($object);
+$res=$rf->getInfoObjectArrayRecurs($object);
 echo json_encode($res);
 	
 
