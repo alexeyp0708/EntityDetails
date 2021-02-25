@@ -5,6 +5,7 @@
 	 */
 	class InfoClassType {
 		use ReflectInfoLib;
+		
 		function __construct($class) 
 		{
 			$this_class=__CLASS__;

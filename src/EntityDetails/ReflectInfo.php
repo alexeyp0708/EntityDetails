@@ -9,8 +9,8 @@
 
 
 	/**
-	 * The class provides methods that output an array of data about objects and classes, 
-	 * preserving the tree of an array or object.
+    The class provides methods that output an array of data about objects and classes, 
+     * preserving the tree of an array or object.
 	 */
 	class ReflectInfo {
 		public $cache_class = [];
