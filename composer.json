@@ -1,12 +1,27 @@
 {
-    "name": "Alpa/EntityDetails",
+    "name": "alpa/entity_details",
     "description": "Provides information about objects.",
     "type": "library",
     "license": "MIT",
-    "require": {},
-	"autoload": {
+    "autoload": {
 		"psr-4": {
 			"Alpa\\EntityDetails\\":"src/EntityDetails"
 		}
-    }
+    },
+    "require": {
+        "php": "^7.4",
+        "alpa/proxy_object": "^1.0.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "autoload-dev": {
+      "psr-4": { "Alpa\\EntityDetails\\Tests\\": "tests/" }
+    },
+    "repositories": [
+        {
+            "type": "git",
+            "url": "https://github.com/ALexeyP0708/php_proxy_object.git"
+        }
+    ]
 }

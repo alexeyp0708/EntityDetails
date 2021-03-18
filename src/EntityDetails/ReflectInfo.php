@@ -24,14 +24,14 @@
 		 * 	Provides information on the class.
 		 * 
 		 * 	@param \ReflectionClass|string $class - Name class. Input by reference.
-		 *  @return \Alpa\EntityDetails\InfoClassType Output by reference.
+		 *  @return \Alpa\EntityDetails\InfoClass Output by reference.
 		 */
-		public function &getInfoClass(&$class) : InfoClassType
+		public function &getInfoClass(&$class) : InfoClass
 		{
 			if (is_string($class) && isset($this->cache_class[$class])) {
 				$answer = $this->cache_class[$class];
 			} else {
-				$answer = new InfoClassType($class);
+				$answer = new InfoClass($class);
 				$this->cache_class[$answer->name] = &$answer;
 			}
 			return $answer;
@@ -41,11 +41,11 @@
 		 * 	Provides information on the object.
 		 *  
 		 * 	@param \ReflectionObject|object $object Input by reference.
-		 *  @return \Alpa\EntityDetails\InfoObjectType Output by reference.
+		 *  @return \Alpa\EntityDetails\InfoObject Output by reference.
 		 */
-		public function &getInfoObject(&$object) : InfoObjectType
+		public function &getInfoObject(&$object) : InfoObject
 		{
-			$answer = new InfoObjectType($object);
+			$answer = new InfoObject($object);
 			/* $hash=spl_object_hash($object);
 			  $cache_objects=&$this->cache_objects;
 			  if(isset($this->cache_objects[$hash])){
@@ -59,13 +59,13 @@
 
 		/**
 		 *  Provides information about the class including information about its descendants (recursively).
-		 * @param \Alpa\EntityDetails\InfoClassType|\ReflectionClass|object|string $class  Name class. Input by reference.
+		 * @param \Alpa\EntityDetails\InfoClass|\ReflectionClass|object|string $class  Name class. Input by reference.
 		 * @param string $path  service parameter. Indicates the route from the starting object. Intended for informative in the generated data.		
-		 * @return \Alpa\EntityDetails\InfoClassType Output by reference.
+		 * @return \Alpa\EntityDetails\InfoClass Output by reference.
 		 */
-		public function &getInfoClassRecurs(&$class, $path = 'root') : InfoClassType
+		public function &getInfoClassRecurs(&$class, $path = 'root') : InfoClass
 		{	
-			if ($class instanceof InfoClassType) {
+			if ($class instanceof InfoClass) {
 				$answer = &$class;
 			} else
 			if (is_string($class) || is_object($class)) {
@@ -100,7 +100,7 @@
 				if (empty($data) || is_string($data)) {
 					$answer->parents[$class_name] = new \ReflectionClass($class_name);
 				}
-				if ($answer->parents[$class_name] instanceof \ReflectionClass || $answer->parents[$class_name] instanceof InfoClassType) {
+				if ($answer->parents[$class_name] instanceof \ReflectionClass || $answer->parents[$class_name] instanceof InfoClass) {
 					$answer->parents[$class_name] = &$this->getInfoClassRecurs($answer->parents[$class_name], trim($path . '.' . $class_name, '.'));
 				}
 			}
@@ -157,9 +157,9 @@
 		}
 		/**
 		 *  Provides information about the class including information about its descendants (recursively).
-		 * @param \Alpa\EntityDetails\InfoObjectType|object $class  Name class. Input by reference.
+		 * @param \Alpa\EntityDetails\InfoObject|object $class  Name class. Input by reference.
 		 * @param string $path  service parameter. Indicates the route from the starting object. Intended for informative in the generated data.		
-		 * @return \Alpa\EntityDetails\InfoObjectType Output by reference.
+		 * @return \Alpa\EntityDetails\InfoObject Output by reference.
 		 */
 		public function &getInfoObjectRecurs(&$object, $path = 'root')
 		{
@@ -167,7 +167,7 @@
 			$cache_objects = &$this->cache_objects;
 			$exclude_hashes = &$this->exclude_hashes;
 			$reincarnation_array = &$this->reincarnation_array;
-			if ($object instanceof InfoObjectType) {
+			if ($object instanceof InfoObject) {
 				$answer = &$object;
 			} else
 			if (is_object($object)) {
@@ -229,7 +229,7 @@
 		 *  or Alpa \ EntityDetails \ InfoClassType
 		 * @param array $objects  $object Object exclusion list
 		 * @param string $path  service parameter. Indicates the route from the starting object. Intended for informative in the generated data.		
-		 * @return \Alpa\EntityDetails\InfoObjectType Output by reference.
+		 * @return \Alpa\EntityDetails\InfoObject Output by reference.
 		 */
 		public function excludeObjects($objects = []) 
 		{
@@ -337,7 +337,7 @@
 					}
 				} else if(is_resource($data)){
 					$answer='Resource type: '.get_resource_type($data);
-				}else {
+				} else {
 					$answer=&$data;
 				}
 				return $answer;

@@ -1,6 +1,7 @@
 <?php
 	namespace Alpa\EntityDetails;
-	class ReflectionObject extends \ReflectionObject {
+	class ReflectionObject extends \ReflectionObject implements Reflector
+    {
 		private $object;
 		public function __construct($o) 
 		{
@@ -8,7 +9,7 @@
 			$this->object = &$o;
 		}
 
-		public function &getObject() 
+		public function getObject() 
 		{
 			return $this->object;
 		}
