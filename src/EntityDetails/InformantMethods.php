@@ -3,7 +3,7 @@
 
 namespace Alpa\EntityDetails;
 
-use Alpa\EntityDetails\NamePropertyGenerator;
+use Alpa\EntityDetails\PropertyNameGenerator;
 
 trait InformantMethods
 {
@@ -93,7 +93,7 @@ trait InformantMethods
             if ($reflect_constant->isPublic()) {
                 $types[]='public';
             }
-            $name=(new NamePropertyGenerator($name))->setTypes($types)->getName();
+            $name=(new PropertyNameGenerator($name))->setTypes($types)->getName();
             $constants[$name] = ['value' => &$value, 'owner' => $reflect_constant->getDeclaringClass()->getName()];
         }
         unset($value);
@@ -136,7 +136,7 @@ trait InformantMethods
                 $types[]='public';
             }
             
-            $name=(new NamePropertyGenerator($name))->setTypes($types)->getName();
+            $name=(new PropertyNameGenerator($name))->setTypes($types)->getName();
             $property = ['owner' => $reflect_property->getDeclaringClass()->getName()];
             $value = null;
             
@@ -225,7 +225,7 @@ trait InformantMethods
             if ($method->isPublic()) {
                 $types[]='public';
             }
-            $name=(new NamePropertyGenerator($name))->setTypes($types)->getName();
+            $name=(new PropertyNameGenerator($name))->setTypes($types)->getName();
             $methods[$name] = ['params' => [], 'return' => '', 'owner' => $method->class];//$method->getDeclaringClass()->getName()
             foreach ($method->getParameters() as $k => &$param) {
                 $methods[$name]['params'][$k] = ['name' => ($param->isPassedByReference() ? '& ' : '') . $param->name];

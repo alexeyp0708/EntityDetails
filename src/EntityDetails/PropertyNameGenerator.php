@@ -4,7 +4,7 @@
 namespace Alpa\EntityDetails;
 
 
-class NamePropertyGenerator
+class PropertyNameGenerator
 {
     const FINAL_LABEL='***';
     const PRIVATE_LABEL='**';
@@ -21,7 +21,7 @@ class NamePropertyGenerator
     {
         $this->name=$name;
     }
-    public function setTypes($types): NamePropertyGenerator
+    public function setTypes($types): PropertyNameGenerator
     {
         if(is_string($types)){
             $types=explode($types,'|');
