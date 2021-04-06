@@ -1,4 +1,5 @@
-# Alpa/EntityDetails.
+# Alpa/EntityDetails. -Deprecated - A new application will be implemented
+  
 ## Исследует объект и предоставляет детальную информацию о нем и о его дочерних элементах.  
 
 > *Документацию по API Можно сформировать через PHPDocumentor v.3 Alpha-3*  
