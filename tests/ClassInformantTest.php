@@ -2,8 +2,11 @@
 
 namespace Alpa\EntityDetails\Tests;
 
-use Alpa\EntityDetails\Informant;
+use Alpa\EntityDetails\CacheRepository;
 use Alpa\EntityDetails\ClassInformant;
+use Alpa\EntityDetails\IInformant;
+use Alpa\EntityDetails\ObjectInformant;
+use Alpa\EntityDetails\ReflectorInformant;
 use Alpa\EntityDetails\Tests\Constraints\Asserts;
 use Alpa\EntityDetails\Tests\Fixtures\ExampleChildClass;
 use Alpa\EntityDetails\Tests\Fixtures\ExampleClass;
@@ -22,13 +25,13 @@ class ClassInformantTest extends TestCase
     {
         parent::setUpBeforeClass();
         $observed = ExampleChildClass::class;
-        $info = new class(ExampleChildClass::class) extends ClassInformant {
-            public static function setCache($data, Informant $object)
+        $info = new class($observed) extends ClassInformant {
+            public static function setCache($data, IInformant $object)
             {
                 parent::setCache($data, $object);
             }
 
-            public static function getCache($data): ?Informant
+            public static function getCache($data): ?IInformant
             {
                 return parent::getCache($data);
             }
@@ -72,6 +75,10 @@ class ClassInformantTest extends TestCase
             {
                 parent::initProperties();
             }
+            public function initObserved($observed,$is_recursive=false)
+            {
+                parent::initObserved($observed,$is_recursive); 
+            }
         };
         $reflect = new \ReflectionClass($info);
         $instance = $reflect->newInstanceWithoutConstructor();
@@ -106,12 +113,11 @@ class ClassInformantTest extends TestCase
         $class = static::$fixtures['data_informant']['class'];
         $reflect = new \ReflectionClass($class);
 
-        $cache = $reflect->getProperty('cache');
-        $cache->setAccessible(true);
+        $cache = CacheRepository::getAllCache();
         $instance1 = $reflect->newInstanceWithoutConstructor();
-        $this->assertTrue(!isset($cache->getValue()[get_class($test_class)]));
+        $this->assertTrue(null===CacheRepository::getCache(get_class($test_class)));
         $class::setCache($test_class, $instance1);
-        $this->assertTrue(isset($cache->getValue()[get_class($test_class)]));
+        $this->assertTrue(CacheRepository::getCache(get_class($test_class))===$instance1);
         $instance2 = $class::getCache($test_class);
         $this->assertTrue($instance1 === $instance2);
     }
@@ -140,7 +146,7 @@ class ClassInformantTest extends TestCase
         $instance->initInterfaces();
         $this->assertArrayHasKey(ExampleInterface::class, $instance->interfaces);
         $this->assertTrue($instance->interfaces[ExampleInterface::class] instanceof ClassInformant);
-        $methods = $instance->interfaces[ExampleInterface::class]->native_methods;
+        $methods = $instance->interfaces[ExampleInterface::class]->methods['native'];
         $this->assertTrue($methods['~ own']['owner'] === ExampleInterface::class);
         $this->assertTrue($methods['~% ownStatic']['owner'] === ExampleInterface::class);
     }
@@ -152,7 +158,7 @@ class ClassInformantTest extends TestCase
         $instance->initTraits();
         $this->assertArrayHasKey(ExampleTrait::class, $instance->traits);
         $this->assertTrue($instance->traits[ExampleTrait::class] instanceof ClassInformant);
-        $methods = $instance->traits[ExampleTrait::class]->native_methods;
+        $methods = $instance->traits[ExampleTrait::class]->methods['native'];
         $this->assertTrue($methods['traitMethod']['owner'] === ExampleTrait::class);
     }
 
@@ -180,37 +186,37 @@ class ClassInformantTest extends TestCase
     public function test_initMethods()
     {
         $instance = static::$fixtures['data_informant']['instance'];
-        $this->assertTrue(count($instance->methods) === 0);
-        $this->assertTrue(count($instance->native_methods) === 0);
+        $this->assertTrue(count($instance->methods['all']) === 0);
+        $this->assertTrue(count($instance->methods['native']) === 0);
+
         $instance->initMethods();
+        $this->assertTrue(
+            isset($instance->methods['all']['own']) &&
+            $instance->methods['all']['own']['params'][0]['name'] === 'arg1' &&
+            $instance->methods['all']['own']['params'][0]['type'] === 'string' &&
+            $instance->methods['all']['own']['params'][1]['name'] === '& arg2' &&
+            $instance->methods['all']['own']['params'][1]['type'] === '? int' &&
+            $instance->methods['all']['own']['params'][1]['value'] === 9 &&
+            $instance->methods['all']['own']['& return']['type'] === '? string' &&
+            $instance->methods['all']['own']['owner'] === ExampleChildClass::class
+        );
 
         $this->assertTrue(
-            isset($instance->methods['own']) &&
-            $instance->methods['own']['params'][0]['name'] === 'arg1' &&
-            $instance->methods['own']['params'][0]['type'] === 'string' &&
-            $instance->methods['own']['params'][1]['name'] === '& arg2' &&
-            $instance->methods['own']['params'][1]['type'] === '? int' &&
-            $instance->methods['own']['params'][1]['value'] === 9 &&
-            $instance->methods['own']['& return']['type'] === '? string' &&
-            $instance->methods['own']['owner'] === ExampleChildClass::class
-        );
-        
-        $this->assertTrue(
-            $instance->methods['parent']['owner'] === ExampleClass::class
-            && $instance->methods['parentReplace']['owner'] === ExampleChildClass::class
-            && $instance->methods['traitReplace']['owner'] === ExampleChildClass::class
+            $instance->methods['all']['parent']['owner'] === ExampleClass::class
+            && $instance->methods['all']['parentReplace']['owner'] === ExampleChildClass::class
+            && $instance->methods['all']['traitReplace']['owner'] === ExampleChildClass::class
             // методы трейта устанавливают владельцем класс в котором определены.
-            && $instance->methods['traitMethod']['owner'] === ExampleChildClass::class
-            && $instance->methods['%* ownProtectedStatic']['owner'] === ExampleChildClass::class
-            && $instance->methods['%** ownPrivateStatic']['owner'] === ExampleChildClass::class
-            && $instance->methods['%*** ownFinalStatic']['owner'] === ExampleChildClass::class
+            && $instance->methods['all']['traitMethod']['owner'] === ExampleChildClass::class
+            && $instance->methods['all']['%* ownProtectedStatic']['owner'] === ExampleChildClass::class
+            && $instance->methods['all']['%** ownPrivateStatic']['owner'] === ExampleChildClass::class
+            && $instance->methods['all']['%*** ownFinalStatic']['owner'] === ExampleChildClass::class
         );
         $this->assertTrue(
-            isset($instance->native_methods['own'])
-            && isset($instance->native_methods['parentReplace'])
-            && isset($instance->native_methods['traitReplace'])
-            && isset($instance->native_methods['traitMethod'])
-            && !isset($instance->native_methods['parent'])
+            isset($instance->methods['native']['own'])
+            && isset($instance->methods['native']['parentReplace'])
+            && isset($instance->methods['native']['traitReplace'])
+            && isset($instance->methods['native']['traitMethod'])
+            && !isset($instance->methods['native']['parent'])
         );
     }
 
@@ -219,34 +225,42 @@ class ClassInformantTest extends TestCase
         $instance = static::$fixtures['data_informant']['instance'];
         $observed = static::$fixtures['data_informant']['observed'];
         $class = static::$fixtures['data_informant']['class'];
-        $this->assertTrue(count($instance->properties) === 0);
-        $this->assertTrue(count($instance->native_properties) === 0);
+        $this->assertTrue(count($instance->properties['all']) === 0);
+        $this->assertTrue(count($instance->properties['native']) === 0);
         $instance->initProperties();
         $this->assertTrue(
-            $instance->properties['parentProp']['owner'] === ExampleClass::class
-            && $instance->properties['parentProp']['value']==='hello'
-            && $instance->properties['* protectedProp']['owner'] === ExampleChildClass::class
-            && $instance->properties['* protectedProp']['value']==='hello'
-            && $instance->properties['** privateProp']['owner'] === ExampleChildClass::class
-            && $instance->properties['** privateProp']['value']==='hello'
-            && $instance->properties['%** privateStaticProp']['owner'] === ExampleChildClass::class
-            && $instance->properties['%** privateStaticProp']['value'] === 'hello'
-            && $instance->properties['%** privateStaticProp']['type'] === '? string'
-            && $instance->properties['%* protectedStaticProp']['value'] === 'hello'
-            && $instance->properties['% publicStaticProp']['value'] === 'hello'
+            $instance->properties['all']['parentProp']['owner'] === ExampleClass::class
+            && $instance->properties['all']['parentProp']['value'] === 'hello'
+            && $instance->properties['all']['* protectedProp']['owner'] === ExampleChildClass::class
+            && $instance->properties['all']['* protectedProp']['value'] === 'hello'
+            && $instance->properties['all']['** privateProp']['owner'] === ExampleChildClass::class
+            && $instance->properties['all']['** privateProp']['value'] === 'hello'
+            && $instance->properties['all']['%** privateStaticProp']['owner'] === ExampleChildClass::class
+            && $instance->properties['all']['%** privateStaticProp']['value'] === 'hello'
+            && $instance->properties['all']['%** privateStaticProp']['type'] === '? string'
+            && $instance->properties['all']['%* protectedStaticProp']['value'] === 'hello'
+            && $instance->properties['all']['% publicStaticProp']['value'] === 'hello'
+            && $instance->properties['all']['publicObjectProp']['owner'] === ExampleChildClass::class
+            && $instance->properties['all']['publicObjectProp']['type'] === ExampleClass::class
+            && $instance->properties['all']['publicObjectProp']['value'] === null
+            && $instance->properties['all']['% publicStaticObjectProp']['owner'] === ExampleChildClass::class
+            && $instance->properties['all']['% publicStaticObjectProp']['type'] === ExampleClass::class
+            && $instance->properties['all']['% publicStaticObjectProp']['value'] instanceof ObjectInformant
+            && $instance->properties['all']['% publicStaticObjectProp']['value']->class->name === ExampleClass::class
+            && $instance->properties['all']['% publicStaticInformantObject']['owner'] === ExampleChildClass::class
+            && $instance->properties['all']['% publicStaticInformantObject']['type'] === IInformant::class
+            && $instance->properties['all']['% publicStaticInformantObject']['value'] === ExampleChildClass::$publicStaticInformantObject
+
+        // Note: with recursiveness, add a check of the object for the Reflector and Informator
         );
-        
+
         $this->assertTrue(
-            isset($instance->native_properties['* protectedProp'])
-            && isset($instance->native_properties['** privateProp'])
-            && isset($instance->native_properties['%** privateStaticProp'])
-            && !isset($instance->native_properties['parentProp'])
+            isset($instance->properties['native']['* protectedProp'])
+            && isset($instance->properties['native']['** privateProp'])
+            && isset($instance->properties['native']['%** privateStaticProp'])
+            && !isset($instance->properties['native']['parentProp'])
+            && isset($instance->properties['native']['publicObjectProp'])
+            && isset($instance->properties['native']['% publicStaticObjectProp'])
         );
-        //  проерка на рекурсивный анализ массивов и обьектов
-    }
-
-    public function _test_()
-    {
-
     }
 }

@@ -1,14 +1,25 @@
 <?php
 namespace  Alpa\EntityDetails\Tests;
 
+use Alpa\EntityDetails\ArrayInformant;
 use Alpa\EntityDetails\Info;
 use Alpa\EntityDetails\ReflectionClass;
 use Alpa\EntityDetails\ReflectionObject;
 use Alpa\EntityDetails\Tests\Constraints\Asserts;
 use Alpa\EntityDetails\Tests\Fixtures\ExampleClass;
 use PHPUnit\Framework\TestCase;
+class Test0{}
+class Test01 extends Test0{}
+interface ITest2{
+    public function test ():Test0;
+}
 
-
+class Test2 implements ITest2 {
+    public function test ():Test01
+    {
+        return new Test01();        
+    }
+}
 class TestTest  extends TestCase
 {
     use Asserts;
@@ -30,16 +41,7 @@ class TestTest  extends TestCase
     }
     public function test_test()
     {
-/*        $map=new \Ds\Map();
-        $a=['hello'=>'qwer'];
-        $b=['hello'=>'qwer'];
-        $map->put($a,'zzz');       
-        $r1=$map->get($a);
-        $r2=$map->get($b);
-        self::assertTrue($r1===$r2);
-        $keys=$map->keys();
-        $a['hello']='qwer2';
-        self::assertTrue($a===$keys->get(0));*/
+        $obj=new Test2();
+        $obj2=$obj->test();
     }
-  
 }

@@ -4,42 +4,20 @@ namespace Alpa\EntityDetails;
 /**
  *    data type InfoClassType
  */
-class ClassInformant extends Informant
+class ClassInformant  implements IInformant
 {
+    use TClassInformant;
     public string $name;
-    public ? string $file;
+    public ?string $file;
     public array $interfaces = [];
     public array $traits = [];
-    public array $parent=[];
+    public array $parent = [];
     public array $constants = [];
-    public array $methods = [];
-    public array $native_methods = [];
-    public array $properties = [];
-    public array $native_properties = [];
-    
-    protected static array $cache=[];
+    public array $methods = ['all'=>[],'native'=>[]];
+    public array $properties = ['all'=>[],'native'=>[]];
 
+    
 
-    protected static function getCache($data) :? Informant
-    {
-        $name_class=$data;
-        if(is_object($name_class)){
-            $name_class= get_class($name_class);
-        }
-        return self::$cache[$name_class]??null;
-    }
-    
-    protected static function setCache($data, Informant $object)
-    {
-        $class_name=$data;
-        if(is_object($class_name)){
-            $class_name=get_class($class_name);
-        }
-        if(!isset(self::$cache[$class_name])){
-            self::$cache[$class_name]=$object;
-        }
-    }    
-    
     protected function init()
     {
         $this->initName();
@@ -75,7 +53,7 @@ class ClassInformant extends Informant
     {
         $this->parent = $this->genParentClass();
     }
-    
+
     protected function initConstants()
     {
         $this->constants = $this->genConstants();
@@ -83,21 +61,11 @@ class ClassInformant extends Informant
 
     protected function initMethods()
     {
-        foreach ($this->genMethods() as $key => &$value) {
-            if (property_exists($this, $key)) {
-                $this->$key =& $value;
-            }
-        }
-        unset($value);
+        $this->methods = $this->genMethods();
     }
 
     protected function initProperties()
     {
-        foreach ($this->genProperties() as $key => &$value) {
-            if (property_exists($this, $key)) {
-                $this->$key =& $value;
-            }
-        }
-        unset($value);
+        $this->properties = $this->genProperties();
     }
 }

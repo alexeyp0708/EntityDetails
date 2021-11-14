@@ -9,13 +9,12 @@
 namespace Alpa\EntityDetails;
 
 
-abstract class Informant
+abstract class ReflectorInformant implements IInformant
 {
-    
-    use InformantMethods;
-    protected Reflector $reflect;
+    protected ?Reflector $reflect=null;
     protected $observed;
     protected bool $is_recursive=false;
+    
     function __construct($observed,$is_recursive=false)
     {
         if($observed instanceof static)
@@ -27,7 +26,7 @@ abstract class Informant
         static::setCache($observed,$this);
     }
     
-    public function initObserved($observed,$is_recursive=false)
+    protected function initObserved($observed,$is_recursive=false)
     {
         $reflect=static::getReflector($observed);
         $this->reflect=$reflect;
@@ -38,6 +37,7 @@ abstract class Informant
     {
         return $this->observed;
     }
+    
     /**
      * @param object|string $observed
      * @return ReflectionClass
@@ -90,17 +90,17 @@ abstract class Informant
         }
         return null;
     }
-    
-    public  static function newObject ($class,$is_recursive=false) :Informant
-    {
-        return static::getCache($class)??new static($class,$is_recursive);
-    }
     /**
-     * @param string|object $observed class name or objected
-     * @param $reflect
-     * @return mixed
+     * @param object|string $class
+     * @param false $is_recursive
+     * @return IInformant
+     * @throws \Exception
      */
+    public  static function newObject (&$observed,bool $is_recursive=false):IInformant
+    {
+        return static::getCache($observed)??new static($observed,$is_recursive);
+    }
+    abstract protected static function getCache($data): ? IInformant;
+    abstract protected static function setCache($data, IInformant $object);
     abstract protected function init();
-    abstract protected static function getCache($data): ? Informant;
-    abstract protected static function setCache($data, Informant $object);
 }

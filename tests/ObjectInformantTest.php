@@ -2,7 +2,8 @@
 
 namespace Alpa\EntityDetails\Tests;
 
-use Alpa\EntityDetails\Informant;
+use Alpa\EntityDetails\CacheRepository;
+use Alpa\EntityDetails\IInformant;
 use Alpa\EntityDetails\ClassInformant;
 use Alpa\EntityDetails\ObjectInformant;
 use Alpa\EntityDetails\Tests\Constraints\Asserts;
@@ -22,12 +23,12 @@ class ObjectInformantTest extends TestCase
         parent::setUpBeforeClass();
         $observed = new ExampleChildClass();
         $info = new class($observed) extends ObjectInformant {
-            public static function setCache($data, Informant $object)
+            public static function setCache($data, IInformant $object)
             {
                 parent::setCache($data, $object);
             }
 
-            public static function getCache($data): ?Informant
+            public static function getCache($data): ?IInformant
             {
                 return parent::getCache($data);
             }
@@ -50,6 +51,10 @@ class ObjectInformantTest extends TestCase
             public function initProperties()
             {
                 parent::initProperties();
+            }
+            public function initObserved($observed,$is_recursive=false)
+            {
+                parent::initObserved($observed,$is_recursive);
             }
         };
         $reflect = new \ReflectionObject($info);
@@ -84,12 +89,10 @@ class ObjectInformantTest extends TestCase
         };
         $class = static::$fixtures['data_informant']['class'];
         $reflect = static::$fixtures['data_informant']['reflect'];
-        $cache = $reflect->getProperty('cache');
-        $cache->setAccessible(true);
         $instance1 = $reflect->newInstanceWithoutConstructor();
-        $this->assertTrue(!isset($cache->getValue()[spl_object_hash($test)]));
+        $this->assertTrue(null===CacheRepository::getCache(spl_object_hash($test)));
         $class::setCache($test, $instance1);
-        $this->assertTrue(isset($cache->getValue()[spl_object_hash($test)]));
+        $this->assertTrue(CacheRepository::getCache(spl_object_hash($test))===$instance1);
         $instance2 = $class::getCache($test);
         $this->assertTrue($instance1 === $instance2);
     }
@@ -108,29 +111,40 @@ class ObjectInformantTest extends TestCase
     {
         $instance = static::$fixtures['data_informant']['instance'];
         $observed = static::$fixtures['data_informant']['observed'];
-        $this->assertTrue(count($instance->properties) === 0);
-        $this->assertTrue(count($instance->native_properties) === 0);
+        $this->assertTrue(count($instance->properties['all']) === 0);
+        $this->assertTrue(count($instance->properties['native']) === 0);
         $instance->initProperties();
         $this->assertTrue(
-            $instance->properties['parentProp']['owner'] === ExampleClass::class
-            && $instance->properties['parentProp']['value'] === 'hello'
-            && $instance->properties['publicProp']['owner'] === ExampleChildClass::class
-            && $instance->properties['publicProp']['value'] === 'hello'
-            && $instance->properties['* protectedProp']['owner'] === ExampleChildClass::class
-            && $instance->properties['* protectedProp']['value'] === 'hello'
-            && $instance->properties['** privateProp']['owner'] === ExampleChildClass::class
-            && $instance->properties['** privateProp']['value'] === 'hello'
+            $instance->properties['all']['parentProp']['owner'] === ExampleClass::class
+            && $instance->properties['all']['parentProp']['value'] === 'hello'
+            && $instance->properties['all']['publicProp']['owner'] === ExampleChildClass::class
+            && $instance->properties['all']['publicProp']['value'] === 'hello'
+            && $instance->properties['all']['* protectedProp']['owner'] === ExampleChildClass::class
+            && $instance->properties['all']['* protectedProp']['value'] === 'hello'
+            && $instance->properties['all']['** privateProp']['owner'] === ExampleChildClass::class
+            && $instance->properties['all']['** privateProp']['value'] === 'hello'
+            && $instance->properties['all']['publicObjectProp']['owner']===ExampleChildClass::class
+            && $instance->properties['all']['publicObjectProp']['type']===ExampleClass::class
+            && $instance->properties['all']['publicObjectProp']['value'] instanceof ObjectInformant
+            && $instance->properties['all']['publicObjectProp']['value']->class->name===ExampleClass::class
+            && $instance->properties['all']['% publicStaticObjectProp']['owner']===ExampleChildClass::class
+            && $instance->properties['all']['% publicStaticObjectProp']['type']===ExampleClass::class
+            && $instance->properties['all']['% publicStaticObjectProp']['value'] instanceof ObjectInformant
+            && $instance->properties['all']['% publicStaticObjectProp']['value']->class->name===ExampleClass::class
+
         );
         $this->assertTrue(
-            isset($instance->native_properties['publicProp'])
-            && isset($instance->native_properties['* protectedProp'])
-            && isset($instance->native_properties['** privateProp'])
-            && isset($instance->native_properties['%** privateStaticProp'])
-            && !isset($instance->native_properties['parentProp'])
-        );        
-        // поле проерка на рекурсивный анализ массивов и обьектов
+            isset($instance->properties['native']['publicProp'])
+            && isset($instance->properties['native']['* protectedProp'])
+            && isset($instance->properties['native']['** privateProp'])
+            && isset($instance->properties['native']['%** privateStaticProp'])
+            && !isset($instance->properties['native']['parentProp'])
+        );
     }
-
+    public function test_initProperties_recursive()
+    {
+        
+    }
     public function _test_()
     {
 

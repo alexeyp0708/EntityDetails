@@ -3,12 +3,107 @@
 
 namespace Alpa\EntityDetails;
 
-use Alpa\EntityDetails\PropertyNameGenerator;
-
-trait InformantMethods
+trait TReflectorInformant
 {
-    protected Reflector $reflect;
+    protected ?Reflector $reflect=null;
     protected bool $is_recursive = false;
+    protected $observed;
+    function __construct($observed,$is_recursive=false)
+    {
+        if($observed instanceof static)
+        {
+            throw new \Exception('Argument[0] to constructor must not belong to class '.static::class);
+        }
+        $this->initObserved($observed,$is_recursive);
+        $this->init();
+        static::setCache($observed,$this);
+    }
+
+    protected function initObserved($observed,$is_recursive=false)
+    {
+        $reflect=static::getReflector($observed);
+        $this->reflect=$reflect;
+        $this->is_recursive=$is_recursive;
+        $this->observed=$observed;
+    }
+    public function getObserved()
+    {
+        return $this->observed;
+    }
+
+    /**
+     * @param object|string $observed
+     * @return ReflectionClass
+     * @throws \ReflectionException
+     */
+    public static function getReflectionClass($observed): ReflectionClass
+    {
+        /*if($observed instanceof Reflector){            
+            return $observed;
+        }*/
+        if($observed instanceof \ReflectionClass){
+            $observed = $observed->getName();
+        }
+        return  new ReflectionClass($observed);
+    }
+
+    /**
+     * @param object $observed
+     * @return ReflectionObject
+     */
+    public static function getReflectionObject(object $observed) : ReflectionObject
+    {
+        /* if($observed instanceof Reflector){
+             return $observed;
+         }*/
+        return  new ReflectionObject($observed);
+    }
+
+
+    /**
+     * @param ReflectionObject|ReflectionClass|object|string $observed
+     * @param bool $parseObjectClass
+     * @return ReflectionObject|ReflectionClass
+     * @throws \ReflectionException
+     */
+
+    public static function getReflector ($observed,bool $parseObjectClass=false):? Reflector
+    {
+        if($observed instanceof Reflector){
+            return $observed;
+        }
+        if(is_object($observed)){
+            if($parseObjectClass){
+                return static::getReflectionClass($observed);
+            } else {
+                return static::getReflectionObject($observed);
+            }
+        } else if(is_string($observed)){
+            return static::getReflectionClass($observed);
+        }
+        return null;
+    }
+    /**
+     * @param object|string $class
+     * @param false $is_recursive
+     * @return IInformant
+     * @throws \Exception
+     */
+    public  static function newObject (&$observed,bool $is_recursive=false):IInformant
+    {
+        return static::getCache($observed)??new static($observed,$is_recursive);
+    }
+
+    public static function getClasses(): array
+    {
+        return [
+            'Informant' => IInformant::class,
+            'ClassInformant' => ClassInformant::class,
+            'ObjectInformant' => ObjectInformant::class,
+            'ArrayInformant' => ArrayInformant::class
+        ];
+    }
+
     protected function genName(): string
     {
         return $this->reflect->getName();
@@ -33,9 +128,14 @@ trait InformantMethods
      */
     protected function genInterfaces(): array
     {
+        /**
+         * @var ClassInformant $ClassInformant
+         */
+        extract(static::getClasses());
         $interfaces = [];
         foreach ($this->reflect->getInterfaces() as $interface => $reflect_interface) {
-            $interfaces[$interface] = $this->is_recursive ? ClassInformant::newObject($reflect_interface->getName(), $this->is_recursive) : null;
+            $observed=$reflect_interface->getName();
+            $interfaces[$interface] = $this->is_recursive ? $ClassInformant::newObject($observed, $this->is_recursive) : null;
         }
         return $interfaces;
     }
@@ -49,9 +149,14 @@ trait InformantMethods
      */
     protected function genTraits(): array
     {
+        /**
+         * @var ClassInformant $ClassInformant
+         */
+        extract(static::getClasses());
         $traits = [];
         foreach ($this->reflect->getTraits() as $trait => $reflect_trait) {
-            $traits[$trait] = $this->is_recursive ? ClassInformant::newObject($reflect_trait->getName(), $this->is_recursive) : null;
+            $observed=$reflect_trait->getName();
+            $traits[$trait] = $this->is_recursive ? $ClassInformant::newObject($observed, $this->is_recursive) : null;
         }
         return $traits;
     }
@@ -65,9 +170,14 @@ trait InformantMethods
      */
     protected function genParentClass(): array
     {
+        /**
+         * @var ClassInformant $ClassInformant
+         */
+        extract(static::getClasses());
         $reflect_parent = $this->reflect->getParentClass();
         if ($reflect_parent !== false) {
-            return [$reflect_parent->name => $this->is_recursive ? ClassInformant::newObject($reflect_parent->getName(), $this->is_recursive) : null];
+            $observed=$reflect_parent->getName();
+            return [$reflect_parent->name => $this->is_recursive ? $ClassInformant::newObject($observed, $this->is_recursive) : null];
         }
         return [];
     }
@@ -104,13 +214,20 @@ trait InformantMethods
     /**
      * @return array
      * [
-     *      'properties'=>'array' // list all properties
-     *      'native_properties'=>'array' // a sheet of own properties
+     *      'all'=>'array' // list all properties
+     *      'native'=>'array' // a sheet of own properties
      * ];
      * @throws \Exception
      */
     protected function genProperties(): array
-    { // декомпизировать
+    { // note:to decompose
+        /**
+         * @var IInformant $Informant
+         * @var ClassInformant $ClassInformant
+         * @var ObjectInformant $ObjectInformant
+         * @var ArrayInformant $ArrayInformant
+         */
+        extract(static::getClasses());
         $properties = [];
         $native_properties = [];
         $default = $this->reflect->getDefaultProperties();
@@ -120,33 +237,42 @@ trait InformantMethods
             $property_name = $reflect_property->name;
             $name = $property_name;
             $reflect_property->setAccessible(true);
-            $types=[];
-            
+            $types = [];
+
             if ($reflect_property->isStatic()) {
-                $types[]='static';
+                $types[] = 'static';
             }
-            
+
             if ($reflect_property->isPrivate()) {
-                $types[]='private';
+                $types[] = 'private';
             } else
-            if ($reflect_property->isProtected()) {
-                $types[]='protected';
-            } else
-            if ($reflect_property->isPublic()) {
-                $types[]='public';
-            }
-            
-            $name=(new PropertyNameGenerator($name))->setTypes($types)->getName();
+                if ($reflect_property->isProtected()) {
+                    $types[] = 'protected';
+                } else
+                    if ($reflect_property->isPublic()) {
+                        $types[] = 'public';
+                    }
+
+            $name = (new PropertyNameGenerator($name))->setTypes($types)->getName();
             $property = ['owner' => $reflect_property->getDeclaringClass()->getName()];
             $value = null;
-            
+            /*            if ($reflect_property->isStatic()) {
+                            $value = $reflect_property->getValue();
+                        } else if ($object !== null) {
+                            $value = $reflect_property->getValue($object);
+                        } else if (isset($default[$property_name])) {
+                            $value = $default[$property_name];
+                        }
+                        if($value instanceof Reflector || $value instanceof Informant){
+                            $property=$value;
+                        } else */
             if ($reflect_property->isStatic()) {
                 $value = $reflect_property->getValue();
                 if ($this->is_recursive) {
-                    if (is_object($value) && !($value instanceof Informant) && !($value instanceof \Reflector)) {
-                        $value = ObjectInformant::newObject($value, $this->is_recursive);//new InfoObjectType($value,$this->is_recursive);
+                    if (is_object($value) && !($value instanceof $Informant) && !($value instanceof \Reflector)) {
+                        $value = $ObjectInformant::newObject($value, $this->is_recursive);
                     } else if (is_array($value) && $reflect_property->isPublic()) {
-                        $value = ArrayInformant::newObject($value, $this->is_recursive); //new InfoArrayType($value,$this->is_recursive);
+                        $value = $ArrayInformant::newObject($value, $this->is_recursive); 
                     }
                 } else if (is_object($value) && !$reflect_property->hasType()) {
                     $property['value_type'] = get_class($value);
@@ -157,22 +283,25 @@ trait InformantMethods
                     $property['type'] = ($type->allowsNull() ? '? ' : '') . $type->getName();
                 }
             } else {
-                if($object!==null){
+                if ($object !== null) {
                     $value = $reflect_property->getValue($object);
-                } else
-                if (isset($default[$property_name])) {
+                } else if (isset($default[$property_name])) {
                     $value = $default[$property_name];
                 }
                 if ($this->is_recursive) {
-                    if (is_object($value) && !($value instanceof Informant) && !($value instanceof \Reflector)) {
-                        $value = ObjectInformant::newObject($value, $this->is_recursive);//new InfoObjectType($value,$this->is_recursive);
+                    if (is_object($value) && !($value instanceof $Informant) && !($value instanceof \Reflector)) {
+                        $value = $ObjectInformant::newObject($value, $this->is_recursive);//new InfoObjectType($value,$this->is_recursive);
                     } else if ($object !== null && is_array($value)) {
-                        $value = ArrayInformant::newObject($value, $this->is_recursive);
+                        $value = $ArrayInformant::newObject($value, $this->is_recursive);
                     }
                 } else if (is_object($value) && !$reflect_property->hasType()) {
                     $property['value_type'] = get_class($value);
                 }
                 $property['value'] = $value;
+                if ($reflect_property->hasType()) {
+                    $type = $reflect_property->getType();
+                    $property['type'] = ($type->allowsNull() ? '? ' : '') . $type->getName();
+                }
             }
             $properties[$name] = $property;
             if ($nc === $reflect_property->getDeclaringClass()->getName()) {
@@ -180,20 +309,25 @@ trait InformantMethods
             }
         }
         unset($reflect_property);
-        return compact(['properties', 'native_properties']);
+        return [
+            'all' => $properties,
+            'native' => $native_properties
+        ];
     }
+
 
     /**
      * generates a list of methods
      * @return  array
      * [
-     *      'methods'=>'array' // list all methods
-     *      'native_methods'=>'array' // a sheet of own methods
+     *      'all'=>'array' // list all methods
+     *      'native'=>'array' // a sheet of own methods
      * ];
      * @throws \ReflectionException
      */
     protected function genMethods(): array
     {
+
         $methods = [];
         $native_methods = [];
         foreach ($this->reflect->getMethods() as &$method) {
@@ -249,12 +383,24 @@ trait InformantMethods
             }
         }
         unset($method);
-        return compact(['methods', 'native_methods']);
-        //return ['methods'=>$methods,'native_methods'=>$native_methods];
+        return [
+            'all' => $methods,
+            'native' => $native_methods
+        ];
     }
 
     protected function genClass() : ClassInformant
     {
-        return ClassInformant::newObject($this->reflect->getName());
+        /**
+         * @var ClassInformant $ClassInformant
+         */
+        extract(static::getClasses());
+        //return $ClassInformant::newObject($this->reflect->getName(),$this->is_recursive);
+        $class=$this->reflect->getName();
+        return $ClassInformant::newObject($class,$this->is_recursive);
     }
+
+    abstract protected static function getCache($data): ? IInformant;
+    abstract protected static function setCache($data, IInformant $object);
+    abstract protected function init();
 }

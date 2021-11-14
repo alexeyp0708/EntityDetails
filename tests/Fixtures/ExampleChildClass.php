@@ -4,17 +4,25 @@
 namespace Alpa\EntityDetails\Tests\Fixtures;
 
 
+use Alpa\EntityDetails\ClassInformant;
+use Alpa\EntityDetails\IInformant;
+
 class ExampleChildClass extends ExampleClass implements ExampleInterface
 {
     use ExampleTrait;
-    public $publicProp='hello';
+    public  $publicProp='hello';
     protected $protectedProp='hello';
     private $privateProp='hello';
-    
+    public ExampleClass $publicObjectProp;
     private static ?string $privateStaticProp='hello';
     protected static string $protectedStaticProp='hello';
     public static string $publicStaticProp='hello';
-    
+    public static ExampleClass $publicStaticObjectProp;
+    public static IInformant $publicStaticInformantObject;
+    public function __construct()
+    {
+        $this->publicObjectProp= new ExampleClass();
+    }
     public function & own(string $arg1,?int & $arg2=9):?string
     {
         
@@ -77,3 +85,5 @@ class ExampleChildClass extends ExampleClass implements ExampleInterface
 
     }*/
 }
+ExampleChildClass::$publicStaticObjectProp=new ExampleClass();
+ExampleChildClass::$publicStaticInformantObject = new ClassInformant(new class (){});

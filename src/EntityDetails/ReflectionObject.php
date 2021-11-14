@@ -6,7 +6,7 @@
 		public function __construct($o) 
 		{
 			parent::__construct($o);
-			$this->object = &$o;
+			$this->object = $o;
 		}
 
 		public function getObject() 
