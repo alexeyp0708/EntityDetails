@@ -3,7 +3,7 @@
 
 namespace Alpa\EntityDetails\Proxy;
 
-use Alpa\ProxyObject\Proxy;
+use Alpa\Tools\ProxyObject\Proxy;
 
 trait TObjectInformant
 {

@@ -8,9 +8,9 @@
 
 namespace Alpa\EntityDetails\Proxy;
 
-use Alpa\ProxyObject\Handlers\InstanceActions;
-use Alpa\ProxyObject\Handlers\StaticActions;
-use Alpa\ProxyObject\Proxy;
+use Alpa\Tools\ProxyObject\Handlers\InstanceActions;
+use Alpa\Tools\ProxyObject\Handlers\StaticActions;
+use Alpa\Tools\ProxyObject\Proxy;
 
 class ObjectInformantProxy extends StaticActions
 {

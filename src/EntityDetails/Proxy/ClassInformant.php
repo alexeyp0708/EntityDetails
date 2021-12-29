@@ -4,7 +4,7 @@ namespace Alpa\EntityDetails\Proxy;
 
 use Alpa\EntityDetails\IInformant;
 use Alpa\EntityDetails\TReflectorInformant;
-use Alpa\ProxyObject\Proxy;
+use Alpa\Tools\ProxyObject\Proxy;
 
 class ClassInformant implements IInformant
 {

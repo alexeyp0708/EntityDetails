@@ -8,8 +8,8 @@
 
 namespace Alpa\EntityDetails\Proxy;
 
-use Alpa\ProxyObject\Handlers\InstanceActions;
-use Alpa\ProxyObject\Proxy;
+use Alpa\Tools\ProxyObject\Handlers\InstanceActions;
+use Alpa\Tools\ProxyObject\Proxy;
 
 class ClassInformantProxy extends ObjectInformantProxy
 {

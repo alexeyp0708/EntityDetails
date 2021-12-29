@@ -11,7 +11,7 @@
     "require": {
         "php": "^7.4",
         "ext-ds": "^1.3",
-        "alpa/proxy_object": "^1.0.0",
+        "alpa/tools_proxy_object": "^1.0.0",
         "alpa/php-tools": "*"
     },
     "require-dev": {
@@ -21,10 +21,6 @@
       "psr-4": { "Alpa\\EntityDetails\\Tests\\": "tests/" }
     },
     "repositories": [
-        {
-            "type": "git",
-            "url": "https://github.com/ALexeyP0708/php_proxy_object.git"
-        },
         {
             "type": "git",
             "url": "https://github.com/ALexeyP0708/php-tools.git"
