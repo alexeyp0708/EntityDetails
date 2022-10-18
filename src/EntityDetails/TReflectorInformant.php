@@ -8,7 +8,7 @@ trait TReflectorInformant
     protected ?Reflector $reflect=null;
     protected bool $is_recursive = false;
     protected $observed;
-    function __construct($observed,$is_recursive=false)
+    public function __construct($observed,$is_recursive=false)
     {
         if($observed instanceof static)
         {
